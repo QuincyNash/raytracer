@@ -1,0 +1,37 @@
+#pragma once
+#include "SDL.h"
+#include "renderer/tracer.hpp"
+#include "scene/scene.hpp"
+
+// Forward declaration
+class Image;
+
+class Renderer {
+ private:
+  Scene scene;
+  Pixels frontPixels;
+  Pixels backPixels;
+  std::vector<uint8_t> image8;  // Raw image data for SDL
+  Tracer tracer;
+  const int FPS;
+  SDL_Window* window = nullptr;
+  SDL_Renderer* sdl_renderer = nullptr;
+  SDL_Texture* texture = nullptr;
+  const double MOVE_SPEED = 0.5;
+
+  void update_image8();
+
+ public:
+  Renderer(Scene sc, int fps = 60)
+      : scene(sc),
+        frontPixels(sc.getWidth(), sc.getHeight()),
+        backPixels(sc.getWidth(), sc.getHeight()),
+        image8(sc.getWidth() * sc.getHeight() * 3, 0),
+        FPS(fps) {}
+
+  void run();
+
+  ~Renderer() = default;
+
+  friend class Image;
+};

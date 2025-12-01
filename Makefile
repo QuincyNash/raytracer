@@ -1,0 +1,63 @@
+CC = g++
+
+# Compilation flags based on mode
+MODE ?= fast
+
+SDL_FLAGS = $(shell sdl2-config --cflags)
+DEBUG_FLAGS = -g -Wall -Wextra -Werror -fsanitize=address -fsanitize=undefined -MMD -MP -std=c++23 -I. $(SDL_FLAGS)
+OPTIMIZED_FLAGS = -O3 -march=native -flto -funroll-loops -fstrict-aliasing -ffast-math -fno-math-errno -fomit-frame-pointer -MMD -MP -std=c++23 -I. $(SDL_FLAGS)
+
+CFLAGS = $(if $(filter debug,$(MODE)),$(DEBUG_FLAGS),$(OPTIMIZED_FLAGS))
+LDFLAGS = $(shell sdl2-config --libs) 
+LDFLAGS += $(if $(filter debug,$(MODE)),-fsanitize=address -fsanitize=undefined,)
+
+BUILD_DIR = build
+
+# Recursively find all cpp files
+SRCS := $(shell find . -type f -name '*.cpp')
+
+# Convert sources to build/*.o with mirrored directory structure
+OBJS := $(patsubst ./%.cpp,$(BUILD_DIR)/%.o,$(SRCS))
+
+# Object files for main and test targets
+MAIN_OBJ := $(BUILD_DIR)/main.o
+TEST_OBJ := $(BUILD_DIR)/test.o
+OTHER_OBJS := $(filter-out $(MAIN_OBJ) $(TEST_OBJ), $(OBJS))
+
+OBJS_MAIN := $(MAIN_OBJ) $(OTHER_OBJS)
+OBJS_TEST := $(TEST_OBJ) $(OTHER_OBJS)
+
+DEPS := $(OBJS:.o=.d)
+
+all: $(BUILD_DIR)/main
+
+$(BUILD_DIR)/main: $(OBJS_MAIN)
+	$(CC) $^ $(LDFLAGS) -o $@
+
+$(BUILD_DIR)/test: $(OBJS_TEST)
+	$(CC) $^ $(LDFLAGS) -o $@
+
+# Pattern rule supporting nested directories
+$(BUILD_DIR)/%.o: %.cpp
+	mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+-include $(DEPS)
+
+main: $(BUILD_DIR)/main
+	./$(BUILD_DIR)/main
+
+test: $(BUILD_DIR)/test
+	./$(BUILD_DIR)/test
+
+leaks-main: $(BUILD_DIR)/main
+	leaks --atExit -- ./$(BUILD_DIR)/main
+
+leaks-test: $(BUILD_DIR)/test
+	leaks --atExit -- ./$(BUILD_DIR)/test
+
+clean:
+	rm -rf $(BUILD_DIR)
+	rm -f *.ppm
+
+.PHONY: all main test clean
