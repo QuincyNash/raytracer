@@ -32,14 +32,10 @@ class Tracer;
 // Abstract base class for all shapes in the scene
 class Shape {
  protected:
-  static constexpr double EPS = 1e-5;
+  const Material material;
 
  public:
-  const Material material;
-  const Vector min;  // For BVH optimization
-  const Vector max;  // For BVH optimization
-
-  Shape(const Material& mat) : material(mat) {};
+  Shape(const Material& mat) : material(mat) {}
 
   // Returns HitInfo if intersection, std::nullopt otherwise
   virtual std::optional<HitInfo> intersects(const Ray& ray) const = 0;
@@ -48,4 +44,40 @@ class Shape {
   virtual ~Shape() = default;
 
   friend class Tracer;
+};
+
+struct Bounds {
+ private:
+  void compCenter();
+  void compArea();
+
+ public:
+  Vector min;
+  Vector max;
+  Vector center;
+  float area;
+
+  Bounds() : min(__DBL_MAX__), max(-__DBL_MAX__), center(), area(0) {}
+  Bounds(const Vector& point)
+      : min(point), max(point), center(point), area(0) {}
+  Bounds(const Vector& bmin, const Vector& bmax) : min(bmin), max(bmax) {
+    compCenter();
+    compArea();
+  }
+
+  void expand(const Bounds& other);
+  void expand(const Vector& point);
+  bool intersects(const Ray& ray, double& tmin, double& tmax) const;
+
+  ~Bounds() = default;
+};
+
+class BoundedShape : public Shape {
+ public:
+  Bounds bounds;
+
+  BoundedShape(const Material& mat, const Vector& bmin, const Vector& bmax)
+      : Shape(mat), bounds(bmin, bmax) {}
+
+  virtual ~BoundedShape() = default;
 };
