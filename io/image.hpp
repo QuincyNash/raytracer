@@ -17,18 +17,18 @@ class Image {
  public:
   Image(const Renderer& renderer)
       : scene(renderer.scene), pixels(renderer.frontPixels) {}
-  Image(const Scene& sc, int quality = 129)
+  Image(Scene& sc, int quality = 129)
       : scene(sc), pixels([&]() -> Pixels& {
           static Pixels tempPixels(sc.getWidth(), sc.getHeight());
           return tempPixels;
         }()) {
-    Tracer tracer = Tracer();
+    Tracer tracer = Tracer(const_cast<Scene&>(scene));
     for (int i = 0; i < quality; i++) {
-      tracer.refine_pixels(scene, const_cast<Pixels&>(pixels));
+      tracer.refinePixels(const_cast<Pixels&>(pixels));
     }
     tracer.wait();
   }
-  bool save() const;
+  bool save(std::string filename = "") const;
 
   ~Image() = default;
 };

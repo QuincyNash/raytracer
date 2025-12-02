@@ -6,17 +6,22 @@
 #include "renderer/tracer.hpp"
 
 // Save the image to a PPM file (return true on success)
-bool Image::save() const {
-  // Get filename from user from tinyfiledialogs
-  const char* saveFile = tinyfd_saveFileDialog("Save file",     // title
-                                               "./output.ppm",  // default name
-                                               0, NULL,         // no filters
-                                               "Text Files"     // description
-  );
-  if (!saveFile) return false;
-  const std::string filename(saveFile);
+bool Image::save(std::string filename) const {
+  char* saveFile;
 
-  std::ofstream output(filename, std::ios::binary);
+  if (filename.empty()) {
+    // Get filename from user from tinyfiledialogs
+    saveFile = tinyfd_saveFileDialog("Save file",     // title
+                                     "./output.ppm",  // default name
+                                     0, NULL,         // no filters
+                                     "Text Files"     // description
+    );
+    if (!saveFile) return false;
+  } else {
+    saveFile = const_cast<char*>(filename.c_str());
+  }
+
+  std::ofstream output(saveFile, std::ios::binary);
   if (!output.is_open()) {
     return false;
   }
