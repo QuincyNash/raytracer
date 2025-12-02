@@ -6,7 +6,7 @@
 #include "io/image.hpp"
 #include "math/color.hpp"
 
-void Renderer::update_image8() {
+void Renderer::updateImage8() {
   const int w = scene.getWidth();
   const int h = scene.getHeight();
 
@@ -26,8 +26,8 @@ void Renderer::run() {
   SDL_Init(SDL_INIT_VIDEO);
   window = SDL_CreateWindow("Progressive Ray Tracer", SDL_WINDOWPOS_CENTERED,
                             SDL_WINDOWPOS_CENTERED, w, h, 0);
-  sdl_renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-  texture = SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_RGB24,
+  sdlRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+  texture = SDL_CreateTexture(sdlRenderer, SDL_PIXELFORMAT_RGB24,
                               SDL_TEXTUREACCESS_STREAMING, w, h);
 
   bool running = true;
@@ -66,10 +66,10 @@ void Renderer::run() {
 
     for (uint32_t row = 0; row < h; ++row) {
       // Copy ready rows to front buffer
-      if (backPixels.rowReady[row]) {
+      if (backPixels.rowReady[row].load(std::memory_order_acquire)) {
         std::copy_n(backPixels.data.data() + row * w, w,
                     frontPixels.data.data() + row * w);
-        backPixels.rowReady[row] = false;
+        backPixels.rowReady[row].store(false, std::memory_order_release);
       }
     }
 
@@ -77,7 +77,7 @@ void Renderer::run() {
     Vector dir;
 
     // Scale move_speed by FPS for consistent speed
-    double move_speed = MOVE_SPEED / static_cast<double>(FPS);
+    double moveSpeed = MOVE_SPEED / static_cast<double>(FPS);
 
     // Update camera version on movement
     if (SDL_GetKeyboardState(NULL)[SDL_SCANCODE_W] ||
@@ -122,22 +122,28 @@ void Renderer::run() {
     // Update camera position
     if (cameraUpdate) {
       Scene& sc = scene;
-      sc.moveCameraPosition(dir.norm().scale(move_speed));
+      sc.moveCameraPosition(dir.norm().scale(moveSpeed));
+
+      // Clear all tasks in the tracer pool
+      tracer.pool.clearTasks();
 
       // Reset backPixel buffer and rowReady flags
       std::fill(backPixels.data.begin(), backPixels.data.end(), PixelData());
-      std::fill(backPixels.rowReady.begin(), backPixels.rowReady.end(), false);
-      // Clear all tasks in the tracer pool
-      tracer.pool.clear_tasks();
+      for (auto& ready : backPixels.rowReady) {
+        ready.store(false, std::memory_order_release);
+      }
     }
 
-    tracer.refine_pixels(scene, backPixels);
+    // Make sure tracer isn't overloaded with tasks
+    if (tracer.pool.numTasks() <= scene.getHeight()) {
+      tracer.refinePixels(backPixels);
+    }
 
-    update_image8();
+    updateImage8();
     SDL_UpdateTexture(texture, nullptr, image8.data(), w * 3);
-    SDL_RenderClear(sdl_renderer);
-    SDL_RenderCopy(sdl_renderer, texture, nullptr, nullptr);
-    SDL_RenderPresent(sdl_renderer);
+    SDL_RenderClear(sdlRenderer);
+    SDL_RenderCopy(sdlRenderer, texture, nullptr, nullptr);
+    SDL_RenderPresent(sdlRenderer);
 
     const int frameTime = SDL_GetTicks() - frameStart;
     const int fps = (frameTime > 0) ? (1000 / frameTime) : 0;
@@ -149,10 +155,9 @@ void Renderer::run() {
     // fps = (frameTime > 0) ? (1000 / frameTime) : 0;
     // std::cout << "FPS: " << fps << std::endl;
   }
-  tracer.pool.clear_tasks();
 
   SDL_DestroyTexture(texture);
-  SDL_DestroyRenderer(sdl_renderer);
+  SDL_DestroyRenderer(sdlRenderer);
   SDL_DestroyWindow(window);
   SDL_Quit();
 }

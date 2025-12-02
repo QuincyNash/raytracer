@@ -15,11 +15,11 @@ class Renderer {
   Tracer tracer;
   const int FPS;
   SDL_Window* window = nullptr;
-  SDL_Renderer* sdl_renderer = nullptr;
+  SDL_Renderer* sdlRenderer = nullptr;
   SDL_Texture* texture = nullptr;
-  const double MOVE_SPEED = 0.5;
+  static constexpr double MOVE_SPEED = 0.5;
 
-  void update_image8();
+  void updateImage8();
 
  public:
   Renderer(Scene sc, int fps = 60)
@@ -27,6 +27,7 @@ class Renderer {
         frontPixels(sc.getWidth(), sc.getHeight()),
         backPixels(sc.getWidth(), sc.getHeight()),
         image8(sc.getWidth() * sc.getHeight() * 3, 0),
+        tracer(scene),
         FPS(fps) {}
 
   void run();
