@@ -21,21 +21,25 @@ int main() {
                                              .color = Color(255, 255, 255),
                                              .reflectivity = 0.0,
                                          }));
-  for (double x = -3.0; x <= 3.0; x += 0.2) {
-    for (double y = 1.0; y <= 1.4; y += 0.2) {
-      scene.addShape(std::make_unique<Sphere>(Vector(x, y, 0.1), 0.1,
+
+  int i = 0;
+  for (double x = -3.0; x <= 3.0; x += 0.01) {
+    for (double y = -3.0; y <= 3.0; y += 0.01) {
+      i += 1;
+      scene.addShape(std::make_unique<Sphere>(Vector(x, y, 0.1), 0.005,
                                               (Material){
                                                   .color = Color(255, 0, 0),
                                                   .reflectivity = 0.3,
                                               }));
     }
   }
+  std::cout << "Added " << i << " spheres to the scene.\n";
 
   Renderer renderer{scene, 30};
   renderer.run();
 
-  // Image image{scene};
-  // image.save();
+  Image image{renderer};
+  image.save("output.ppm");
 
   return 0;
 }
