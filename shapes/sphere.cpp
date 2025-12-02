@@ -6,6 +6,12 @@
 #include "math/vector.hpp"
 #include "scene/light.hpp"
 
+// Bounding box is center +/- radius in all directions
+Sphere::Sphere(const Vector& cen, double r, const Material& mat)
+    : BoundedShape(mat, cen - Vector(r, r, r), cen + Vector(r, r, r)),
+      center(cen),
+      radius(r) {}
+
 // Calculate intersection of ray with sphere
 std::optional<HitInfo> Sphere::intersects(const Ray& ray) const {
   double a = ray.dir * ray.dir;
@@ -25,7 +31,7 @@ std::optional<HitInfo> Sphere::intersects(const Ray& ray) const {
 
   // Find the nearest positive intersection
   // We know that t1 <= t2, so check t1 first
-  double t = (t1 > EPS) ? t1 : ((t2 > 1e-6) ? t2 : -1);
+  double t = (t1 > Vector::EPS) ? t1 : ((t2 > 1e-6) ? t2 : -1);
 
   // Both intersections are negative, no intersection
   if (t < 0) {

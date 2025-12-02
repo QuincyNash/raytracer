@@ -6,13 +6,12 @@
 #include "shape.hpp"
 
 // Represents a sphere in 3D space
-class Sphere : public Shape {
+class Sphere : public BoundedShape {
  public:
   const Vector center;
   double radius;
 
-  Sphere(const Vector& cen, double r, const Material& mat)
-      : Shape(mat), center(cen), radius(r) {}
+  Sphere(const Vector& cen, double r, const Material& mat);
   std::optional<HitInfo> intersects(const Ray& ray) const override;
   Sphere* clone() const override { return new Sphere(*this); }
 };
