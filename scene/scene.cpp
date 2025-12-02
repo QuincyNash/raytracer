@@ -5,18 +5,17 @@
 #include "math/vector.hpp"
 
 // Set camera parameters
-void Scene::setCamera(const Vector pos, const Vector dir,
-                      const double fov_deg) {
+void Scene::setCamera(const Vector pos, const Vector dir, const double fovDeg) {
   camera.position = pos;
   camera.setDir(dir);
-  camera.fov = fov_deg;
+  camera.fov = fovDeg;
 }
 
 void Scene::setCameraPos(const Vector pos) { camera.position = pos; }
 
 void Scene::setCameraDir(const Vector dir) { camera.setDir(dir); }
 
-void Scene::setCameraFov(const double fov_deg) { camera.fov = fov_deg; }
+void Scene::setCameraFov(const double fovDeg) { camera.fov = fovDeg; }
 
 void Scene::eulerRotateCamera(int dx, int dy) { camera.eulerRotate(dx, dy); }
 
@@ -40,5 +39,10 @@ void Scene::addLight(const Vector pos, const Color color) {
 
 // Add a shape to the scene
 void Scene::addShape(std::unique_ptr<Shape> shape) {
-  shapes.push_back(std::move(shape));
+  if (auto* bshape = dynamic_cast<BoundedShape*>(shape.get())) {
+    shape.release();  // Now shape no longer owns it
+    bndedShapes.emplace_back(bshape);
+  } else {
+    nonBndedShapes.emplace_back(std::move(shape));
+  }
 }

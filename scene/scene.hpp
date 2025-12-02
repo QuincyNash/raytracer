@@ -23,7 +23,8 @@ class Scene {
   Camera camera;
   Color background;
   std::vector<Light> lights;
-  std::vector<std::unique_ptr<Shape>> shapes;
+  std::vector<std::unique_ptr<BoundedShape>> bndedShapes;
+  std::vector<std::unique_ptr<Shape>> nonBndedShapes;
 
  public:
   Scene(const int w, const int h, const int maxRefl)
@@ -33,8 +34,7 @@ class Scene {
         ambientLight(),
         camera(),
         background(),
-        lights(),
-        shapes() {}
+        lights() {}
   Scene(const Scene& other)
       : width(other.width),
         height(other.height),
@@ -43,10 +43,16 @@ class Scene {
         camera(other.camera),
         background(other.background),
         lights(other.lights),
-        shapes() {
+        bndedShapes(),
+        nonBndedShapes() {
+    // Deep copy of bounded shapes
+    for (const std::unique_ptr<BoundedShape>& bshape : other.bndedShapes) {
+      bndedShapes.push_back(std::unique_ptr<BoundedShape>(
+          static_cast<BoundedShape*>(bshape->clone())));
+    }
     // Deep copy of shapes
-    for (const std::unique_ptr<Shape>& shape : other.shapes) {
-      shapes.push_back(std::unique_ptr<Shape>(shape->clone()));
+    for (const std::unique_ptr<Shape>& shape : other.nonBndedShapes) {
+      nonBndedShapes.push_back(std::unique_ptr<Shape>(shape->clone()));
     }
   }
 
@@ -57,7 +63,7 @@ class Scene {
   const Color getBackground() const { return background; }
   const Camera getCamera() const { return camera; }
   void setAmbientLight(const double ambient);
-  void setCamera(const Vector pos, const Vector dir, const double fov_deg);
+  void setCamera(const Vector pos, const Vector dir, const double fovDeg);
   void setCameraPos(const Vector pos);
   void setCameraDir(const Vector dir);
   void setCameraFov(const double fov_deg);
