@@ -62,7 +62,7 @@ void Camera::movePosition(const Vector& delta) {
 }
 
 void Camera::zoom(double scroll) {
-  double factor = std::exp(-scroll * scroll_sens);  // smooth
+  double factor = std::exp(-scroll * scrollSens);  // smooth
   fov *= factor;
   fov = std::clamp(fov, 20.0, 90.0);
 }

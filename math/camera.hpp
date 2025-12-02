@@ -17,10 +17,11 @@ class Camera {
 
  public:
   Vector position;
-  Vector direction;             // Must be normalized
-  double fov;                   // In degrees
-  double sensitivity = 0.0015;  // Mouse sensitivity for rotation
-  double scroll_sens = 0.01;    // Scroll sensitivity for zoom
+  Vector direction;  // Must be normalized
+  double fov;        // In degrees
+  static constexpr double sensitivity =
+      0.0015;                                 // Mouse sensitivity for rotation
+  static constexpr double scrollSens = 0.01;  // Scroll sensitivity for zoom
 
   Camera() : position(), direction(1, 0, 0), fov(60.0) {}
   Camera(const Camera& other)
