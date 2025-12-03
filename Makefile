@@ -5,6 +5,10 @@ MODE ?= fast
 
 BUILD_DIR = build
 
+# Find metal tools (fallback to plain 'metal'/'metallib' if xcrun fails)
+METAL := $(shell xcrun --find metal 2>/dev/null || echo metal)
+METALLIB := $(shell xcrun --find metallib 2>/dev/null || echo metallib)
+
 SDL_FLAGS = $(shell sdl2-config --cflags)
 SDL_LDFLAGS = $(shell sdl2-config --libs)
 METAL_FLAGS = -I/Library/Developer/metal-cpp
@@ -14,6 +18,11 @@ OPTIMIZED_FLAGS = -O3 -march=native -funroll-loops -fstrict-aliasing -flto -ffas
 CFLAGS = $(if $(filter debug,$(MODE)),$(DEBUG_FLAGS),$(OPTIMIZED_FLAGS))
 LDFLAGS = $(if $(filter debug,$(MODE)),-fsanitize=address -fsanitize=undefined,)
 LDFLAGS += $(SDL_LDFLAGS) -framework MetalKit -framework Metal -framework Foundation
+
+# Shader build
+SHADERS := $(shell find shaders -type f -name '*.metal')
+AIR_FILES := $(patsubst %.metal,$(BUILD_DIR)/%.air,$(SHADERS))
+METAL_LIB := $(BUILD_DIR)/shaders/Shader.metallib
 
 # Recursively find all cpp files
 SRCS := $(shell find . -type f -name '*.cpp')
