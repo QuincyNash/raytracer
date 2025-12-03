@@ -1,5 +1,7 @@
 #include "camera.hpp"
 
+#include <numbers>
+
 #include "ray.hpp"
 #include "vector.hpp"
 
@@ -45,7 +47,7 @@ void Camera::eulerRotate(int dx, int dy) {
   yaw += dx * sensitivity;
   pitch += dy * sensitivity;
   // Clamp pitch to avoid flipping
-  pitch = std::clamp(pitch, -M_PI / 2 + 0.01, M_PI / 2 - 0.01);
+  pitch = std::clamp(pitch, -M_PI / 2.0 + 0.01, M_PI / 2.0 - 0.01);
 
   // Calculate forward direction vector
   Vector forward =

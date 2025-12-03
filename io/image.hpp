@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <thread>
 #include <vector>
 
 #include "math/color.hpp"
@@ -12,22 +11,12 @@
 class Image {
  private:
   const Scene& scene;
-  const Pixels& pixels;
+  const std::vector<uint8_t> pixels;
 
  public:
   Image(const Renderer& renderer)
-      : scene(renderer.scene), pixels(renderer.frontPixels) {}
-  Image(Scene& sc, int quality = 129)
-      : scene(sc), pixels([&]() -> Pixels& {
-          static Pixels tempPixels(sc.getWidth(), sc.getHeight());
-          return tempPixels;
-        }()) {
-    Tracer tracer = Tracer(const_cast<Scene&>(scene));
-    for (int i = 0; i < quality; i++) {
-      tracer.refinePixels(const_cast<Pixels&>(pixels));
-    }
-    tracer.wait();
-  }
+      : scene(renderer.scene), pixels(renderer.image8) {}
+  Image(Scene& sc, int quality = 17);
   bool save(std::string filename = "") const;
 
   ~Image() = default;

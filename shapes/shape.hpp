@@ -55,9 +55,13 @@ struct Bounds {
   Vector min;
   Vector max;
   Vector center;
-  float area;
+  double area;
 
-  Bounds() : min(__DBL_MAX__), max(-__DBL_MAX__), center(), area(0) {}
+  Bounds()
+      : min(std::numeric_limits<double>::max()),
+        max(-std::numeric_limits<double>::max()),
+        center(),
+        area(0) {}
   Bounds(const Vector& point)
       : min(point), max(point), center(point), area(0) {}
   Bounds(const Vector& bmin, const Vector& bmax) : min(bmin), max(bmax) {

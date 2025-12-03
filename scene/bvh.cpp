@@ -1,5 +1,6 @@
 #include "bvh.hpp"
 
+#include <array>
 #include <memory>
 #include <numeric>
 
@@ -117,7 +118,7 @@ std::pair<int, double> BVH::getBestSAHSplit(
 
   // Initialize and fill bins
   std::vector<Bin> bins(BIN_COUNT);
-  const double extentInv = 1.0f / (centerMax - centerMin);
+  const double extentInv = 1.0 / (centerMax - centerMin);
   for (int i = start; i < end; ++i) {
     const Bounds& b = shapes[shapeIndices[i]]->bounds;
     double c = b.center[axis];
@@ -162,7 +163,7 @@ std::pair<int, double> BVH::getBestSAHSplit(
   }
 
   // Evaluate split costs and find best split
-  double minCost = __DBL_MAX__;
+  double minCost = std::numeric_limits<double>::max();
   int bestBin = -1;
   for (int i = 0; i < BIN_COUNT - 1; ++i) {
     // If either side is empty, skip
@@ -213,10 +214,9 @@ void BVH::build(const std::vector<std::unique_ptr<BoundedShape>>& shapes) {
 }
 
 // Traverse BVH with ray and invoke callback on hits
-void BVH::traverse(
-    const std::vector<std::unique_ptr<BoundedShape>>& shapes, const Ray& ray,
-    const std::function<void(const BoundedShape&, const HitInfo&)>& callback)
-    const {
+void BVH::traverse(const std::vector<std::unique_ptr<BoundedShape>>& shapes,
+                   const Ray& ray,
+                   const std::function<void(const HitInfo&)>& callback) const {
   if (nodes.empty()) return;
 
   struct StackItem {
@@ -225,8 +225,9 @@ void BVH::traverse(
   };
 
   // Construct stack for traversal
+  // Use a dynamic stack to avoid fixed-size overflow for deep BVHs
   std::vector<StackItem> stack;
-  stack.push_back({0, 0.0});
+  stack.emplace_back(StackItem{0, 0.0f});
 
   while (!stack.empty()) {
     StackItem item = stack.back();
@@ -242,24 +243,23 @@ void BVH::traverse(
     if (node.shapeCount > 0) {
       // Leaf node: test all shapes in this node
       for (int i = 0; i < node.shapeCount; ++i) {
-        const BoundedShape& shape = *shapes[shapeIndices[node.shapeIndex + i]];
-        std::optional<HitInfo> hitOpt = shape.intersects(ray);
+        std::optional<HitInfo> hitOpt =
+            shapes[shapeIndices[node.shapeIndex + i]]->intersects(ray);
         if (hitOpt.has_value()) {
-          callback(shape, hitOpt.value());
+          callback(hitOpt.value());
         }
       }
     } else {
-      // Internal node: push children onto stack
-      if (node.left >= 0) stack.push_back({node.right, tmin});
-      if (node.right >= 0) stack.push_back({node.left, tmin});
+      // Internal node: push children onto stack (left then right)
+      if (node.right >= 0) stack.emplace_back(StackItem{node.right, tmin});
+      if (node.left >= 0) stack.emplace_back(StackItem{node.left, tmin});
     }
   }
 }
 
 void BVH::traverseFirstHit(
     const std::vector<std::unique_ptr<BoundedShape>>& shapes, const Ray& ray,
-    const std::function<void(const BoundedShape&, const HitInfo&)>& callback)
-    const {
+    const std::function<void(const HitInfo&)>& callback) const {
   if (nodes.empty()) return;
 
   struct StackItem {
@@ -268,12 +268,11 @@ void BVH::traverseFirstHit(
   };
 
   // Construct stack for traversal
+  // Use a dynamic stack to avoid fixed-size overflow for deep BVHs
   std::vector<StackItem> stack;
-  stack.push_back({0, 0.0});
+  stack.emplace_back(StackItem{0, 0.0f});
 
-  bool hitFound = false;
-
-  while (!stack.empty() && !hitFound) {
+  while (!stack.empty()) {
     StackItem item = stack.back();
     stack.pop_back();
 
@@ -287,18 +286,17 @@ void BVH::traverseFirstHit(
     if (node.shapeCount > 0) {
       // Leaf node: test all shapes in this node
       for (int i = 0; i < node.shapeCount; ++i) {
-        const BoundedShape& shape = *shapes[shapeIndices[node.shapeIndex + i]];
-        std::optional<HitInfo> hitOpt = shape.intersects(ray);
+        std::optional<HitInfo> hitOpt =
+            shapes[shapeIndices[node.shapeIndex + i]]->intersects(ray);
         if (hitOpt.has_value()) {
-          callback(shape, hitOpt.value());
-          hitFound = true;
-          break;
+          callback(hitOpt.value());
+          return;  // Stop after first hit
         }
       }
     } else {
-      // Internal node: push children onto stack
-      if (node.left >= 0) stack.push_back({node.right, tmin});
-      if (node.right >= 0) stack.push_back({node.left, tmin});
+      // Internal node: push children onto stack (left then right)
+      if (node.right >= 0) stack.emplace_back(StackItem{node.right, tmin});
+      if (node.left >= 0) stack.emplace_back(StackItem{node.left, tmin});
     }
   }
 }

@@ -9,7 +9,6 @@ class Image;
 class Renderer {
  private:
   Scene scene;
-  Pixels frontPixels;
   Pixels backPixels;
   std::vector<uint8_t> image8;  // Raw image data for SDL
   Tracer tracer;
@@ -24,7 +23,6 @@ class Renderer {
  public:
   Renderer(Scene sc, int fps = 60)
       : scene(sc),
-        frontPixels(sc.getWidth(), sc.getHeight()),
         backPixels(sc.getWidth(), sc.getHeight()),
         image8(sc.getWidth() * sc.getHeight() * 3, 0),
         tracer(scene),

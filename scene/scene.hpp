@@ -1,12 +1,14 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 
 #include "math/camera.hpp"
 #include "math/color.hpp"
 #include "math/ray.hpp"
 #include "math/vector.hpp"
 #include "scene/light.hpp"
+#include "shapes/plane.hpp"
 #include "shapes/shape.hpp"
 
 // Forward declaration
@@ -24,7 +26,7 @@ class Scene {
   Color background;
   std::vector<Light> lights;
   std::vector<std::unique_ptr<BoundedShape>> bndedShapes;
-  std::vector<std::unique_ptr<Shape>> nonBndedShapes;
+  std::vector<std::unique_ptr<Plane>> planes;
 
  public:
   Scene(const int w, const int h, const int maxRefl)
@@ -44,15 +46,15 @@ class Scene {
         background(other.background),
         lights(other.lights),
         bndedShapes(),
-        nonBndedShapes() {
+        planes() {
     // Deep copy of bounded shapes
     for (const std::unique_ptr<BoundedShape>& bshape : other.bndedShapes) {
       bndedShapes.push_back(std::unique_ptr<BoundedShape>(
           static_cast<BoundedShape*>(bshape->clone())));
     }
-    // Deep copy of shapes
-    for (const std::unique_ptr<Shape>& shape : other.nonBndedShapes) {
-      nonBndedShapes.push_back(std::unique_ptr<Shape>(shape->clone()));
+    // Deep copy of planes
+    for (const std::unique_ptr<Plane>& shape : other.planes) {
+      planes.push_back(std::unique_ptr<Plane>(shape->clone()));
     }
   }
 
@@ -72,7 +74,11 @@ class Scene {
   void zoomCamera(double scroll);
   void setBackground(const int r, const int g, const int b);
   void addLight(const Vector pos, const Color color);
-  void addShape(std::unique_ptr<Shape> shape);
+
+  void addPlane(const Vector& point, const Vector& normal, const Material& mat);
+  void addSphere(const Vector& center, double radius, const Material& mat);
+  void addTriangle(const Vector& a, const Vector& b, const Vector& c,
+                   const Material& mat);
 
   friend class Tracer;
   friend class Renderer;

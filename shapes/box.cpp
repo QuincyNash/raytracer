@@ -15,7 +15,7 @@ std::optional<HitInfo> Box::intersects(const Ray& ray) const {
   double tmax = std::numeric_limits<double>::max();
 
   // For each axis, compute intersection with that axis's slabs
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 3; ++i) {
     double invD = 1.0 / ray.dir[i];
     double t0 = (min[i] - ray.orig[i]) * invD;
     double t1 = (max[i] - ray.orig[i]) * invD;

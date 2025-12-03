@@ -1,3 +1,5 @@
+#include <Foundation/Foundation.hpp>
+#include <Metal/Metal.hpp>
 #include <array>
 #include <cassert>
 #include <cmath>
@@ -8,10 +10,11 @@
 #include "math/color.hpp"
 #include "math/ray.hpp"
 #include "math/vector.hpp"
+#include "shaders/metal.hpp"
 #include "shapes/plane.hpp"
 #include "shapes/sphere.hpp"
 
-void test_color() {
+void testColor() {
   std::cout << "Testing Color class..." << std::endl;
 
   Color c0;
@@ -36,7 +39,7 @@ void test_color() {
   assert(bytes[2] == static_cast<u_char>(150));
 }
 
-void test_vector() {
+void testVector() {
   std::cout << "Testing Vector class..." << std::endl;
 
   Vector v1(2.0, 3.0, 1.0);
@@ -45,9 +48,9 @@ void test_vector() {
   Vector v3 = v1 + v2;
   Vector v4 = v1 - v2;
   Vector v5 = v1 * 2.0;
-  double dot_product = v1 * v2;
-  double magnitude_v1 = v1.mag();
-  double magnitude_v1_sq = v1.magSq();
+  double dotProduct = v1 * v2;
+  double magnitudeV1 = v1.mag();
+  double magnitudeV1Sq = v1.magSq();
   Vector v6 = v1.proj(v2);
   Vector v7 = -v1;
   Vector v8 = v1 / 0.5;
@@ -58,9 +61,9 @@ void test_vector() {
   assert(v3 == Vector(3.0, 4.0, 1.0));
   assert(v4 == Vector(1.0, 2.0, 1.0));
   assert(v5 == Vector(4.0, 6.0, 2.0));
-  assert(dot_product == 5.0);
-  assert(magnitude_v1_sq == 14.0);
-  assert(magnitude_v1 == std::sqrt(14.0));
+  assert(dotProduct == 5.0);
+  assert(magnitudeV1Sq == 14.0);
+  assert(magnitudeV1 == std::sqrt(14.0));
   assert(v6 == Vector(2.5, 2.5, 0.0));
   assert(v7 == Vector(-2.0, -3.0, -1.0));
   assert(v5 == v8 && v8 == v9);
@@ -69,7 +72,7 @@ void test_vector() {
   assert(v11 == Vector(-1.0, 1.0, -1.0));
 }
 
-void test_sphere_intersect() {
+void testSphereIntersect() {
   std::cout << "Testing Sphere intersection..." << std::endl;
 
   Material mat{};
@@ -88,7 +91,7 @@ void test_sphere_intersect() {
   assert(!hitInfoOpt2.has_value());
 }
 
-void test_plane_intersect() {
+void testPlaneIntersect() {
   std::cout << "Testing Plane intersection..." << std::endl;
 
   Material mat{};
@@ -107,11 +110,22 @@ void test_plane_intersect() {
   assert(!hitInfoOpt2.has_value());
 }
 
+void testMetal() {
+  std::cout << "Testing Metal integration..." << std::endl;
+
+  MetalCompute metalCompute;
+  const size_t dataSize = 1024 * 1024;
+  std::vector<float> data(dataSize, 0.0f);
+
+  metalCompute.runKernel("speedTest", data);
+}
+
 int main() {
-  test_color();
-  test_vector();
-  test_sphere_intersect();
-  test_plane_intersect();
+  testColor();
+  testVector();
+  testSphereIntersect();
+  testPlaneIntersect();
+  testMetal();
 
   std::cout << "All tests passed!" << std::endl;
 

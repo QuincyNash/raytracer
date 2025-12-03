@@ -10,18 +10,26 @@ void Renderer::updateImage8() {
   const int w = scene.getWidth();
   const int h = scene.getHeight();
 
-  for (int i = 0; i < w * h; i++) {
-    Color color = frontPixels.data[i].mean.clamp();
-    std::array<u_char, 3> bytes = color.getBytes();
-    image8[3 * i + 0] = bytes[0];
-    image8[3 * i + 1] = bytes[1];
-    image8[3 * i + 2] = bytes[2];
+  for (int y = 0; y < h; ++y) {
+    if (backPixels.rowReady[y]) {
+      for (int x = 0; x < w; ++x) {
+        const int i = y * w + x;
+        const Color& col = backPixels.pxColors[i] /
+                           static_cast<double>(backPixels.pxSamples[i]);
+        const int rIndex = i * 3;
+        const auto bytes = col.clamp().getBytes();
+        image8[rIndex] = bytes[0];
+        image8[rIndex + 1] = bytes[1];
+        image8[rIndex + 2] = bytes[2];
+      }
+      backPixels.rowReady[y] = false;
+    }
   }
 }
 
 void Renderer::run() {
-  const uint32_t w = scene.getWidth();
-  const uint32_t h = scene.getHeight();
+  const int w = scene.getWidth();
+  const int h = scene.getHeight();
 
   SDL_Init(SDL_INIT_VIDEO);
   window = SDL_CreateWindow("Progressive Ray Tracer", SDL_WINDOWPOS_CENTERED,
@@ -55,7 +63,7 @@ void Renderer::run() {
       } else if (event.type == SDL_KEYDOWN && !event.key.repeat) {
         SDL_Keymod mod = SDL_GetModState();  // current modifiers
 
-        // Ctrl+S or Cmd+S pressed, save image
+        // Ctrl + S or Cmd + S pressed, save image
         if (((mod & KMOD_CTRL) || (mod & KMOD_GUI)) &&
             event.key.keysym.scancode == SDL_SCANCODE_S) {
           Image image{*this};
@@ -64,14 +72,8 @@ void Renderer::run() {
       }
     }
 
-    for (uint32_t row = 0; row < h; ++row) {
-      // Copy ready rows to front buffer
-      if (backPixels.rowReady[row].load(std::memory_order_acquire)) {
-        std::copy_n(backPixels.data.data() + row * w, w,
-                    frontPixels.data.data() + row * w);
-        backPixels.rowReady[row].store(false, std::memory_order_release);
-      }
-    }
+    // Copy back pixels to front if ready
+    updateImage8();
 
     // Move camera with arrow keys/wasdqe
     Vector dir;
@@ -127,11 +129,11 @@ void Renderer::run() {
       // Clear all tasks in the tracer pool
       tracer.pool.clearTasks();
 
-      // Reset backPixel buffer and rowReady flags
-      std::fill(backPixels.data.begin(), backPixels.data.end(), PixelData());
-      for (auto& ready : backPixels.rowReady) {
-        ready.store(false, std::memory_order_release);
-      }
+      // Reset backPixel buffer and tileReady flags
+      std::fill(backPixels.pxColors.begin(), backPixels.pxColors.end(),
+                Color());
+      std::fill(backPixels.pxSamples.begin(), backPixels.pxSamples.end(), 0);
+      std::fill(backPixels.rowReady.begin(), backPixels.rowReady.end(), false);
     }
 
     // Make sure tracer isn't overloaded with tasks
@@ -139,7 +141,6 @@ void Renderer::run() {
       tracer.refinePixels(backPixels);
     }
 
-    updateImage8();
     SDL_UpdateTexture(texture, nullptr, image8.data(), w * 3);
     SDL_RenderClear(sdlRenderer);
     SDL_RenderCopy(sdlRenderer, texture, nullptr, nullptr);

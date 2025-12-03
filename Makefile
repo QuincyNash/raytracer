@@ -1,17 +1,19 @@
-CC = g++
+CC = clang++
 
 # Compilation flags based on mode
 MODE ?= fast
 
+BUILD_DIR = build
+
 SDL_FLAGS = $(shell sdl2-config --cflags)
-DEBUG_FLAGS = -g -Wall -Wextra -Werror -fsanitize=address -fsanitize=undefined -MMD -MP -std=c++23 -I. $(SDL_FLAGS)
-OPTIMIZED_FLAGS = -O3 -march=native -flto -funroll-loops -fstrict-aliasing -ffast-math -fno-math-errno -fomit-frame-pointer -MMD -MP -std=c++23 -I. $(SDL_FLAGS)
+SDL_LDFLAGS = $(shell sdl2-config --libs)
+METAL_FLAGS = -I/Library/Developer/metal-cpp
+DEBUG_FLAGS = -g -Wall -Wextra -Werror -fsanitize=address -fsanitize=undefined -MMD -MP -std=c++23 -I. $(SDL_FLAGS) $(METAL_FLAGS)
+OPTIMIZED_FLAGS = -O3 -march=native -funroll-loops -fstrict-aliasing -flto -ffast-math -fno-math-errno -fomit-frame-pointer -MMD -MP -std=c++23 -I. $(SDL_FLAGS) $(METAL_FLAGS)
 
 CFLAGS = $(if $(filter debug,$(MODE)),$(DEBUG_FLAGS),$(OPTIMIZED_FLAGS))
-LDFLAGS = $(shell sdl2-config --libs) 
-LDFLAGS += $(if $(filter debug,$(MODE)),-fsanitize=address -fsanitize=undefined,)
-
-BUILD_DIR = build
+LDFLAGS = $(if $(filter debug,$(MODE)),-fsanitize=address -fsanitize=undefined,)
+LDFLAGS += $(SDL_LDFLAGS) -framework MetalKit -framework Metal -framework Foundation
 
 # Recursively find all cpp files
 SRCS := $(shell find . -type f -name '*.cpp')
@@ -31,11 +33,21 @@ DEPS := $(OBJS:.o=.d)
 
 all: $(BUILD_DIR)/main
 
-$(BUILD_DIR)/main: $(OBJS_MAIN)
-	$(CC) $^ $(LDFLAGS) -o $@
+# Rule for compiling .metal -> .air
+$(BUILD_DIR)/%.air: %.metal
+	mkdir -p $(dir $@)
+	$(METAL) -c $< -o $@
 
-$(BUILD_DIR)/test: $(OBJS_TEST)
-	$(CC) $^ $(LDFLAGS) -o $@
+# Rule to link all .air -> metallib
+$(METAL_LIB): $(AIR_FILES)
+	mkdir -p $(dir $@)
+	$(METALLIB) $^ -o $@
+
+$(BUILD_DIR)/main: $(OBJS_MAIN) $(METAL_LIB)
+	$(CC) $(OBJS_MAIN) -o $@ $(LDFLAGS)
+
+$(BUILD_DIR)/test: $(OBJS_TEST) $(METAL_LIB)
+	$(CC) $(OBJS_TEST) -o $@ $(LDFLAGS)
 
 # Pattern rule supporting nested directories
 $(BUILD_DIR)/%.o: %.cpp

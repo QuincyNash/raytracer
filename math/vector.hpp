@@ -13,8 +13,8 @@ class Vector {
   double _z;
 
  public:
-  // Small error tolerance for floating point comparison
-  static constexpr double EPS = 1e-9;
+  // Small error tolerance for doubleing point comparison
+  static constexpr double EPS = 1e-12;
 
   // Default constructor creates zero vector
   Vector() : _x(0), _y(0), _z(0) {};

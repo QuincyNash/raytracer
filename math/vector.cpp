@@ -157,9 +157,8 @@ double Vector::operator[](int index) const {
       return _y;
     case 2:
       return _z;
-    default:
-      throw std::out_of_range("Index out of range for Vector");
   }
+  return 0.0;  // Default case (should not happen)
 }
 
 // Printing: Vector(x, y, z)

@@ -23,7 +23,7 @@ class BVH {
   std::vector<BVHNode> nodes;
   std::vector<int> shapeIndices;
   static constexpr int LEAF_THRESHOLD = 4;
-  static constexpr int BIN_COUNT = 16;
+  static constexpr int BIN_COUNT = 32;
   static constexpr double TRAVERSAL_COST = 1.0;
   static constexpr double INTERSECTION_COST = 1.0;
 
@@ -57,12 +57,10 @@ class BVH {
   void build(const std::vector<std::unique_ptr<BoundedShape>>& shapes);
   void traverse(const std::vector<std::unique_ptr<BoundedShape>>& shapes,
                 const Ray& ray,
-                const std::function<void(const BoundedShape&, const HitInfo&)>&
-                    callback) const;
+                const std::function<void(const HitInfo&)>& callback) const;
   void traverseFirstHit(
       const std::vector<std::unique_ptr<BoundedShape>>& shapes, const Ray& ray,
-      const std::function<void(const BoundedShape&, const HitInfo&)>& callback)
-      const;
+      const std::function<void(const HitInfo&)>& callback) const;
 
   ~BVH() = default;
 };
