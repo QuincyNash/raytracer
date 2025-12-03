@@ -12,9 +12,13 @@
 struct Pixels {
   std::vector<int> pxSamples;   // Number of samples per pixel
   std::vector<Color> pxColors;  // Accumalated color per pixel (not averaged)
-  std::vector<bool> rowReady;   // Marks if row is ready for display
+  std::vector<std::atomic_bool> rowReady;  // Marks if row is ready for display
 
-  Pixels(int w, int h) : pxSamples(w * h), pxColors(w * h), rowReady(h) {}
+  Pixels(int w, int h) : pxSamples(w * h), pxColors(w * h), rowReady(h) {
+    for (int y = 0; y < h; ++y) {
+      rowReady[y].store(false, std::memory_order_release);
+    }
+  }
   Pixels(const Pixels& px) = default;
   Pixels& operator=(const Pixels& other) = default;
 };
